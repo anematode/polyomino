@@ -1,4 +1,5 @@
 #include <vector>
+#include "position.h"
 
 #ifndef POLYOMINO_H
 #define POLYOMINO_H
@@ -15,50 +16,39 @@ enum Rotation {
   Z270,
 };
 
-struct Position {
-  int x;
-  int y;
-  int z;
-  Position(int xa = 0, int ya = 0, int za = 0) {
-    x = xa;
-    y = ya;
-    z = za;
-  }
-};
-
 class Polyomino {
 private:
-  int width;
-  int height;
-  int depth;
-
   Position minCornerCube;
   Position maxCornerCube;
 
+  unsigned long hashResult;
+  int width;
+  int height;
+  int depth;
   int cubeCount;
+  bool hashComputed;
+  bool reoriented;
+
   std::vector<Position> cubes;
 
 public:
 
-  Polyomino() {
-    width = 0;
-    height = 0;
-    depth = 0;
-
-    cubeCount = 0;
-  }
+  Polyomino();
+  ~Polyomino();
 
   int getWidth();
   int getHeight();
   int getDepth();
+  Position minCorner();
+  Position maxCorner();
 
   int boundingVolume();
 
   int getCubeCount();
   bool isCubeAt(int,int,int);
   bool cubeTouching(int,int,int);
-  void addCube(int,int,int);
-  void reorient();
+  Polyomino& addCube(int,int,int);
+  Polyomino& reorient();
 
   void recomputeBounding();
   void recomputeCorners();
@@ -66,13 +56,16 @@ public:
 
   Position getCube(int);
   Polyomino& translate(int,int,int);
-  Polyomino& rotate(Rotation);
+  Polyomino& rotate(int);
   Polyomino& moveToOrigin();
-  Polyomino& copy();
+  Polyomino& join(Polyomino&);
+  bool equals(Polyomino&);
+  bool operator== (Polyomino&);
 
-  const std::string toString(int);
+  hashType hash();
+
+  const std::string toString();
   friend std::ostream& operator<< (std::ostream& os, Polyomino& c);
 };
 
-
-#endif
+#endif // POLYOMINO_H

@@ -1,7 +1,23 @@
 #include <iostream>
 #include <vector>
+#include <algorithm>
+#include "position.h"
+
 #include "polyomino.h"
 
+// Constructor and destructor
+Polyomino::Polyomino() {
+  width = 0;
+  height = 0;
+  depth = 0;
+
+  cubeCount = 0;
+  hashComputed = false;
+  reoriented = false;
+}
+Polyomino::~Polyomino() {}
+
+// Access to private members
 int Polyomino::getWidth() {
   return width;
 }
@@ -14,6 +30,15 @@ int Polyomino::getDepth() {
   return depth;
 }
 
+Position Polyomino::minCorner() {
+  return minCornerCube;
+}
+
+Position Polyomino::maxCorner() {
+  return maxCornerCube;
+}
+
+// Volume of bounding box
 int Polyomino::boundingVolume() {
   return width * height * depth;
 }
@@ -22,21 +47,30 @@ int Polyomino::getCubeCount() {
   return cubeCount;
 }
 
-void Polyomino::addCube(int x, int y, int z) {
-  Position k = Position(x, y, z);
+Polyomino& Polyomino::addCube(int x, int y, int z) {
+  if (!isCubeAt(x, y, z)) {
+    Position k = Position(x, y, z);
 
-  if (x < minCornerCube.x) minCornerCube.x = x;
-  if (y < minCornerCube.y) minCornerCube.y = y;
-  if (z < minCornerCube.z) minCornerCube.z = z;
+    if (x < minCornerCube.x) minCornerCube.x = x;
+    if (y < minCornerCube.y) minCornerCube.y = y;
+    if (z < minCornerCube.z) minCornerCube.z = z;
 
-  if (x > maxCornerCube.x) maxCornerCube.x = x;
-  if (y > maxCornerCube.y) maxCornerCube.y = y;
-  if (z > maxCornerCube.z) maxCornerCube.z = z;
+    if (x > maxCornerCube.x) maxCornerCube.x = x;
+    if (y > maxCornerCube.y) maxCornerCube.y = y;
+    if (z > maxCornerCube.z) maxCornerCube.z = z;
 
-  cubes.push_back(k);
-  cubeCount++;
+    cubes.push_back(k);
+    cubeCount++;
 
-  recomputeDims();
+    recomputeDims();
+
+    if (hashComputed) {
+      hashResult ^= k.hash();
+    }
+
+    reoriented = false;
+  }
+  return *this;
 }
 
 bool Polyomino::cubeTouching(int x, int y, int z) {
@@ -45,7 +79,10 @@ bool Polyomino::cubeTouching(int x, int y, int z) {
     isCubeAt(x, y, z+1) || isCubeAt(x, y, z-1));
 }
 
-Polyomino& Polyomino::rotate(Rotation dir) {
+Polyomino& Polyomino::rotate(int dir) {
+  hashComputed = false;
+  reoriented = false;
+
   switch (dir)  {
     case X90: {
       int temp;
@@ -70,6 +107,7 @@ Polyomino& Polyomino::rotate(Rotation dir) {
         cubes[i].y = cubes[i].z;
         cubes[i].z = -temp;
       }
+      break;
     }
     case Y90: {
       int temp;
@@ -129,6 +167,9 @@ Polyomino& Polyomino::rotate(Rotation dir) {
 }
 
 Polyomino& Polyomino::translate(int x, int y, int z) {
+  hashComputed = false;
+  reoriented = false;
+
   for (int i = 0; i < cubeCount; i++) {
     cubes[i].x += x;
     cubes[i].y += y;
@@ -155,7 +196,7 @@ Position Polyomino::getCube(int index) {
   return cubes.at(index);
 }
 
-const std::string Polyomino::toString(int sz = 2) {
+const std::string Polyomino::toString() {
   // TODO: Set up udderly display in isometric
 
   std::string output = "";
@@ -174,10 +215,10 @@ std::ostream& operator<< (std::ostream& os, Polyomino& p) {
 }
 
 bool Polyomino::isCubeAt(int x, int y, int z) {
-  Position* q;
+  Position q;
   for (int i = 0; i < cubeCount; i++) {
-    q = &cubes[index];
-    if (q->x == x && q->y == y && q->z == z) {
+    q = cubes.at(i);
+    if (q.x == x && q.y == y && q.z == z) {
       return true;
     }
   }
@@ -189,16 +230,18 @@ void Polyomino::recomputeBounding() {
   recomputeDims();
 }
 
-Polyomino& Polyomino::copy() {
-  Polyomino* k = new Polyomino();
+Polyomino& Polyomino::join(Polyomino& p) {
+  reoriented = false;
+  hashComputed = false;
+
   Position* w;
 
-  for (int i = 0; i < cubeCount; i++) {
-    w = &cubes[i];
-    k->addCube(w->x, w->y, w->z);
+  for (int i = 0; i < p.cubeCount; i++) {
+    w = &p.cubes[i];
+    addCube(w->x, w->y, w->z);
   }
 
-  return *k;
+  return *this;
 }
 
 void Polyomino::recomputeCorners() {
@@ -210,14 +253,18 @@ void Polyomino::recomputeCorners() {
   maxCornerCube.y = -1e9;
   maxCornerCube.z = -1e9;
 
-  for (int i = 0; i < cubeCount; i++) {
-    if (minCornerCube.x > cubes[cubeCount].x) minCornerCube.x = cubes[cubeCount].x;
-    if (minCornerCube.y > cubes[cubeCount].y) minCornerCube.y = cubes[cubeCount].y;
-    if (minCornerCube.z > cubes[cubeCount].z) minCornerCube.z = cubes[cubeCount].z;
+  Position* k;
 
-    if (maxCornerCube.x < cubes[cubeCount].x) minCornerCube.x = cubes[cubeCount].x;
-    if (maxCornerCube.y < cubes[cubeCount].y) minCornerCube.y = cubes[cubeCount].y;
-    if (maxCornerCube.z < cubes[cubeCount].z) minCornerCube.z = cubes[cubeCount].z;
+  for (int i = 0; i < cubeCount; i++) {
+    k = &cubes[i];
+
+    if (minCornerCube.x > k->x) minCornerCube.x = k->x;
+    if (minCornerCube.y > k->y) minCornerCube.y = k->y;
+    if (minCornerCube.z > k->z) minCornerCube.z = k->z;
+
+    if (maxCornerCube.x < k->x) maxCornerCube.x = k->x;
+    if (maxCornerCube.y < k->y) maxCornerCube.y = k->y;
+    if (maxCornerCube.z < k->z) maxCornerCube.z = k->z;
   }
 }
 
@@ -227,7 +274,92 @@ void Polyomino::recomputeDims() {
   height = maxCornerCube.z - minCornerCube.z;
 }
 
-void Polyomino::reorient() {
+Polyomino& Polyomino::reorient() {
+  if (reoriented) return *this;
+
+  hashType minimumHash = std::numeric_limits<hashType>::max();
+  int bestI = 0;
+  int bestJ = 0;
+  bool zRotNeeded = false;
+
   moveToOrigin();
 
+  for (int i = 0; i < 4; i++) { // Note that this loop is an identity transformation after completion
+    for (int j = 0; j < 4; j++) { // Ditto
+      if (hash() < minimumHash) {
+        minimumHash = hash();
+        zRotNeeded = false;
+
+        bestI = i;
+        bestJ = j;
+      }
+
+      rotate(X90);
+      moveToOrigin();
+    }
+    rotate(Y90);
+    moveToOrigin();
+  }
+
+  for (int i = 0; i < 2; i++) {
+    rotate((i == 0) ? Z90 : Z180);
+    moveToOrigin();
+
+    for (int j = 0; j < 4; j++) { // Ditto
+      if (hash() < minimumHash) {
+        minimumHash = hash();
+        zRotNeeded = true;
+
+        bestI = i;
+        bestJ = j;
+      }
+
+      rotate(X90);
+      moveToOrigin();
+    }
+  }
+
+  rotate(Z90);
+
+  if (zRotNeeded) {
+    rotate((bestI == 0) ? Z90 : Z270);
+
+    for (int j = 0; j < bestJ; j++) {
+      rotate(X90);
+    }
+  } else {
+    for (int i = 0; i < bestI; i++) {
+      rotate(Y90);
+    }
+    for (int j = 0; j < bestJ; j++) {
+      rotate(X90);
+    }
+  }
+
+  moveToOrigin();
+  reoriented = true;
+
+  return *this;
+}
+
+hashType Polyomino::hash() {
+  if (hashComputed) return hashResult;
+
+  hashType x = 49207;
+  for (int i = 0; i < cubeCount; i++) {
+    x ^= cubes[i].hash();
+  }
+
+  hashResult = x;
+  return x;
+}
+
+bool Polyomino::equals(Polyomino& p) {
+  if (cubeCount != p.cubeCount) return false;
+
+  return hash() == p.hash();
+}
+
+bool Polyomino::operator== (Polyomino& p) {
+  return equals(p);
 }
