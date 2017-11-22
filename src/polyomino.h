@@ -26,6 +26,7 @@ private:
   int height;
   int depth;
   int cubeCount;
+
   bool hashComputed;
   bool reoriented;
 
@@ -44,10 +45,15 @@ public:
 
   int boundingVolume();
 
-  int getCubeCount();
+  size_t getCubeCount();
   bool isCubeAt(int,int,int);
+  bool isCubeAt(Position&);
   bool cubeTouching(int,int,int);
+  bool cubeTouching(Position&);
   Polyomino& addCube(int,int,int);
+  Polyomino& addCube(Position&);
+  Polyomino& removeCube(int,int,int);
+  Polyomino& removeCube(Position&);
   Polyomino& reorient();
 
   void recomputeBounding();
@@ -56,11 +62,14 @@ public:
 
   Position getCube(int);
   Polyomino& translate(int,int,int);
+  Polyomino& translate(Position&);
   Polyomino& rotate(int);
   Polyomino& moveToOrigin();
   Polyomino& join(Polyomino&);
   bool equals(Polyomino&);
+  bool intersecting(Polyomino&);
   bool operator== (Polyomino&);
+  Polyomino& popLast();
 
   hashType hash();
 

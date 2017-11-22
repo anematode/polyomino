@@ -43,7 +43,7 @@ int Polyomino::boundingVolume() {
   return width * height * depth;
 }
 
-int Polyomino::getCubeCount() {
+size_t Polyomino::getCubeCount() {
   return cubeCount;
 }
 
@@ -73,10 +73,18 @@ Polyomino& Polyomino::addCube(int x, int y, int z) {
   return *this;
 }
 
+Polyomino& Polyomino::addCube(Position& p) {
+  return addCube(p.x, p.y, p.z);
+}
+
 bool Polyomino::cubeTouching(int x, int y, int z) {
   return (isCubeAt(x + 1, y, z) || isCubeAt(x - 1, y, z) ||
     isCubeAt(x, y + 1, z) || isCubeAt(x, y - 1, z) ||
     isCubeAt(x, y, z+1) || isCubeAt(x, y, z-1));
+}
+
+bool Polyomino::cubeTouching(Position& p) {
+  return cubeTouching(p.x, p.y, p.z);
 }
 
 Polyomino& Polyomino::rotate(int dir) {
@@ -187,6 +195,10 @@ Polyomino& Polyomino::translate(int x, int y, int z) {
   return *this;
 }
 
+Polyomino& Polyomino::translate(Position& p) {
+  return translate(p.x, p.y, p.z);
+}
+
 Polyomino& Polyomino::moveToOrigin() {
   translate(-minCornerCube.x, -minCornerCube.y, -minCornerCube.z);
   return *this;
@@ -223,6 +235,10 @@ bool Polyomino::isCubeAt(int x, int y, int z) {
     }
   }
   return false;
+}
+
+bool Polyomino::isCubeAt(Position& p) {
+  return isCubeAt(p.x, p.y, p.z);
 }
 
 void Polyomino::recomputeBounding() {
@@ -362,4 +378,36 @@ bool Polyomino::equals(Polyomino& p) {
 
 bool Polyomino::operator== (Polyomino& p) {
   return equals(p);
+}
+
+Polyomino& Polyomino::removeCube(int x, int y, int z) {
+  Position k;
+  for (int i = 0; i < cubeCount; i++) {
+    k = cubes[i];
+
+    if (k.x == x && k.y == y && k.z == z) {
+      cubes.erase(cubes.begin() + i);
+      return *this;
+    }
+  }
+
+  cubeCount--;
+  return *this;
+}
+
+Polyomino& Polyomino::popLast() {
+  cubes.pop_back();
+  cubeCount--;
+
+  return *this;
+}
+
+bool Polyomino::intersecting(Polyomino& p) {
+  for (int i = 0; i < cubeCount; i++) {
+    if (p.isCubeAt(cubes[i])) {
+      return true;
+    }
+  }
+
+  return false;
 }
