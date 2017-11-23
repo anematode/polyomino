@@ -22,8 +22,6 @@ renderer = new THREE.WebGLRenderer({antialias: true});
 renderer.setSize(window.innerWidth, window.innerHeight);
 
 camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 1000);
-camera.maxDistance = 150;
-camera.minDistance = 2;
 
 // create the Scene
 scene = new THREE.Scene();
@@ -39,6 +37,8 @@ var controls = new THREE.OrbitControls( camera );
 
 camera.position.set(0, 20, 100);
 controls.update();
+controls.maxDistance = 150;
+controls.minDistance = 5;
 
 controls.target.x = 0;
 controls.target.y = 0;
