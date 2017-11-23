@@ -1,15 +1,13 @@
-var loader = new THREE.CubeTextureLoader();
-loader.setPath('src/textures/' );
+var textureLoader = new THREE.TextureLoader();
 
-var textureCube = loader.load([
-	'px.jpg', 'px.jpg',
-	'px.jpg', 'px.jpg',
-	'px.jpg', 'px.jpg'
-]);
+var textureNoiseColor = textureLoader.load("textures/cube/px.jpg");
+textureNoiseColor.repeat.set(1, 1);
+textureNoiseColor.wrapS = textureNoiseColor.wrapT = THREE.RepeatWrapping;
+textureNoiseColor.format = THREE.RGBFormat;
 
-var cubeMaterial = new THREE.MeshBasicMaterial( { color: 0xffffff, envMap: textureCube } );
+var cubeMaterial = new THREE.MeshPhongMaterial({shininess: 50, specular: 0x999999, color: 0xffffff, map: textureNoiseColor});
 var geometry = new THREE.BoxGeometry(1, 1, 1);
-geometry.translate(- 0.5, - 0.5, - 0.5);
+geometry.translate(-0.5, -0.5, -0.5);
 
 function createCube(x, y, z) {
   var cube = new THREE.Mesh(geometry, cubeMaterial);
@@ -24,6 +22,8 @@ renderer = new THREE.WebGLRenderer({antialias: true});
 renderer.setSize(window.innerWidth, window.innerHeight);
 
 camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 1000);
+camera.maxDistance = 150;
+camera.minDistance = 2;
 
 // create the Scene
 scene = new THREE.Scene();
@@ -76,4 +76,4 @@ function render() {
   renderer.render(scene, camera);
 }
 
-animate()
+animate();
